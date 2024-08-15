@@ -6,6 +6,7 @@ const app = express()
 const port = process.env.PORT || 3000
 
 // middleware
+app.use(express.json());
 const corsOptions = {
     origin: ['http://localhost:5173', 'http://localhost:5174',],
     credentials: true,
@@ -31,6 +32,7 @@ async function run() {
       // Send a ping to confirm a successful connection
       await client.db("admin").command({ ping: 1 });
     const itemCollection = client.db("scicItemsDB").collection("allItems")
+    const usersCollection = client.db("scicItemsDB").collection("allUsers")
 
     app.get("/allitems",async (req, res)=>{
         const result = await itemCollection.find().toArray()
@@ -128,6 +130,27 @@ async function run() {
             res.status(500).send({ error: "An error occurred while counting items." });
         }
     });
+
+
+      // user related api 
+
+      app.put("/users", async (req, res)=>{
+        const user = req.body
+        
+        const isExist =await usersCollection.findOne({email:user?.email})
+        if (isExist) {
+          return
+        }
+        const options = {upsert: true}
+        const query = {email: user?.email}
+        const updateDocs = {
+          $set:{
+            ...user,
+          }
+        }
+        const result =await usersCollection.updateOne(query, updateDocs, options)
+        res.send(result)
+      })
 
 
 
