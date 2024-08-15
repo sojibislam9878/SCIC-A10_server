@@ -8,7 +8,7 @@ const port = process.env.PORT || 3000
 // middleware
 app.use(express.json());
 const corsOptions = {
-    origin: ['http://localhost:5173', 'http://localhost:5174',],
+    origin: ['http://localhost:5173', 'http://localhost:5174',"https://scic-a10.web.app"],
     credentials: true,
     optionSuccessStatus: 200,
   }
