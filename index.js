@@ -40,42 +40,66 @@ async function run() {
     })
 
     app.get("/allitemspagination", async (req, res) => {
-      try {
-          const size = parseInt(req.query.size) || 10;  // Set default size to 10 if not provided
-          const page = parseInt(req.query.page) - 1 || 0; // Default to page 1 (index 0)
-          const filter = req.query.filter;
-          const sort = req.query.sort;
-          const search = req.query.search || ""; // Default to an empty string if search is not provided
-  
-          // Build the query object
-          let query = {};
-          if (search) {
-              query.name = { $regex: search, $options: "i" };
-          }
-  
-          if (filter) {
-              query.category = filter;
-          }
-  
-          // Build the aggregation pipeline
-          let processes = [
-              { $match: query },
-              { $addFields: { numberPrice: { $toDouble: "$price" } } },
-              { $sort: { numberPrice: sort === "low" ? 1 : -1 } }, // Sort by price, low to high or high to low
-              { $project: { numberPrice: 0 } }, // Exclude the temporary 'numberPrice' field from the result
-              { $skip: size * page }, // Skip documents for pagination
-              { $limit: size }, // Limit the number of documents returned
-          ];
-  
-          // Execute the aggregation pipeline
-          const result = await itemCollection.aggregate(processes).toArray();
-          res.send(result);
-  
-      } catch (error) {
-          console.error("Error fetching items:", error);
-          res.status(500).send({ error: "An error occurred while fetching items." });
-      }
-  });
+        try {
+            const size = parseInt(req.query.size) || 10;  // Set default size to 10 if not provided
+            const page = parseInt(req.query.page) - 1 || 0; // Default to page 1 (index 0)
+            const filter = req.query.filter;
+            const sort = req.query.sort;
+            const sort2 = req.query.sort2;
+            const search = req.query.search || ""; // Default to an empty string if search is not provided
+    
+            // Build the query object
+            let query = {};
+            if (search) {
+                query.name = { $regex: search, $options: "i" };
+            }
+    
+            if (filter) {
+                query.category = filter;
+            }
+    
+            // Initialize the sorting criteria
+            let sortCriteria = {};
+    
+            // Apply price sorting if provided
+            if (sort === "low") {
+                sortCriteria.numberPrice = 1; // Low to high price
+            } else if (sort === "high") {
+                sortCriteria.numberPrice = -1; // High to low price
+            }
+    
+            // Apply date sorting if provided
+            if (sort2 === "newest") {
+                sortCriteria.createdAt = -1; // Newest first
+            }
+    
+            // Build the aggregation pipeline
+            let processes = [
+                { $match: query },
+                { $addFields: { numberPrice: { $toDouble: "$price" } } },
+            ];
+    
+            // Conditionally add the $sort stage if there are sorting criteria
+            if (Object.keys(sortCriteria).length > 0) {
+                processes.push({ $sort: sortCriteria });
+            }
+    
+            // Continue with the rest of the pipeline
+            processes.push(
+                { $project: { numberPrice: 0 } }, // Exclude the temporary 'numberPrice' field from the result
+                { $skip: size * page }, // Skip documents for pagination
+                { $limit: size } // Limit the number of documents returned
+            );
+    
+            // Execute the aggregation pipeline
+            const result = await itemCollection.aggregate(processes).toArray();
+            res.send(result);
+    
+        } catch (error) {
+            console.error("Error fetching items:", error);
+            res.status(500).send({ error: "An error occurred while fetching items." });
+        }
+    });
 
     app.get("/itemscounts", async (req, res) => {
         try {
