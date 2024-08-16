@@ -42,9 +42,11 @@ async function run() {
             const size = parseInt(req.query.size) || 10;  // Set default size to 10 if not provided
             const page = parseInt(req.query.page) - 1 || 0; // Default to page 1 (index 0)
             const filter = req.query.filter;
+            const brand = req.query.brand
             const sort = req.query.sort;
             const sort2 = req.query.sort2;
             const search = req.query.search || ""; // Default to an empty string if search is not provided
+    console.log(brand,filter);
     
             // Build the query object
             let query = {};
@@ -54,6 +56,9 @@ async function run() {
     
             if (filter) {
                 query.category = filter;
+            }
+            if (brand) {
+                query.brand = brand;
             }
     
             // Initialize the sorting criteria
@@ -88,10 +93,12 @@ async function run() {
                 { $skip: size * page }, // Skip documents for pagination
                 { $limit: size } // Limit the number of documents returned
             );
+            
     
             // Execute the aggregation pipeline
             const result = await itemCollection.aggregate(processes).toArray();
             res.send(result);
+            
     
         } catch (error) {
             console.error("Error fetching items:", error);
