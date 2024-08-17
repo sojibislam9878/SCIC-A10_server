@@ -16,7 +16,6 @@ const corsOptions = {
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.lb51cqq.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -39,13 +38,13 @@ async function run() {
 
     app.get("/allitemspagination", async (req, res) => {
         try {
-            const size = parseInt(req.query.size) || 10;  // Set default size to 10 if not provided
-            const page = parseInt(req.query.page) - 1 || 0; // Default to page 1 (index 0)
+            const size = parseInt(req.query.size) || 10;  
+            const page = parseInt(req.query.page) - 1 || 0; 
             const filter = req.query.filter;
             const brand = req.query.brand
             const sort = req.query.sort;
             const sort2 = req.query.sort2;
-            const search = req.query.search || ""; // Default to an empty string if search is not provided
+            const search = req.query.search || "";
     console.log(brand,filter);
     
             // Build the query object
@@ -61,41 +60,34 @@ async function run() {
                 query.brand = brand;
             }
     
-            // Initialize the sorting criteria
             let sortCriteria = {};
     
-            // Apply price sorting if provided
             if (sort === "low") {
-                sortCriteria.numberPrice = 1; // Low to high price
+                sortCriteria.numberPrice = 1; 
             } else if (sort === "high") {
-                sortCriteria.numberPrice = -1; // High to low price
+                sortCriteria.numberPrice = -1; 
             }
     
-            // Apply date sorting if provided
             if (sort2 === "newest") {
-                sortCriteria.createdAt = -1; // Newest first
+                sortCriteria.createdAt = -1; 
             }
     
-            // Build the aggregation pipeline
             let processes = [
                 { $match: query },
                 { $addFields: { numberPrice: { $toDouble: "$price" } } },
             ];
     
-            // Conditionally add the $sort stage if there are sorting criteria
             if (Object.keys(sortCriteria).length > 0) {
                 processes.push({ $sort: sortCriteria });
             }
     
-            // Continue with the rest of the pipeline
             processes.push(
-                { $project: { numberPrice: 0 } }, // Exclude the temporary 'numberPrice' field from the result
-                { $skip: size * page }, // Skip documents for pagination
-                { $limit: size } // Limit the number of documents returned
+                { $project: { numberPrice: 0 } }, 
+                { $skip: size * page }, 
+                { $limit: size } 
             );
             
     
-            // Execute the aggregation pipeline
             const result = await itemCollection.aggregate(processes).toArray();
             res.send(result);
             
@@ -108,25 +100,24 @@ async function run() {
 
     app.get("/itemscounts", async (req, res) => {
         try {
-            const { filter, search } = req.query;
+            const { filter, search,brand } = req.query;
     
-            // Create the base query object
             let query = {};
     
-            // If search is provided, add it to the query with case-insensitive regex
             if (search) {
                 query.name = { $regex: search, $options: "i" };
             }
     
-            // If filter is provided, add it to the query
             if (filter) {
                 query.category = filter;
             }
+
+            if (brand) {
+              query.brand = brand;
+          }
     
-            // Count the documents matching the query
             const count = await itemCollection.countDocuments(query);
     
-            // Send the count as a response
             res.send({ count });
         } catch (error) {
             console.error("Error counting items:", error);
@@ -135,7 +126,6 @@ async function run() {
     });
 
 
-      // user related api 
 
       app.put("/users", async (req, res)=>{
         const user = req.body
